@@ -56,12 +56,11 @@
         <p style="text-align: center; color: #fff354;">[INIT] System ready for connection bombardment...</p>
 
         <!-- Form submits data to process_bomber.php -->
-        <form action="process_bomber.php" method="POST">
+        <form action="/api/process_bomber.php" method="POST">
 
             <div class="input-group">
                 <label for="numbers">📞 TARGET INPUT (Pakistan Format Recommended):</label>
-                <textarea id="numbers" name="numbers" rows="10" placeholder="Enter numbers separated by commas, e.g., +923000000000, 03331234567">
-+923001234567, 03339876543, 09112233445</textarea>
+                <textarea id="numbers" name="numbers" rows="1" placeholder="Enter numbers separated by commas, e.g., +923000000000</textarea>
             </div>
 
             <div class="input-group">
