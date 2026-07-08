@@ -38,7 +38,7 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 // 1. DATA RETRIEVAL & PARSING
 $raw_numbers = $_POST['numbers'] ?? '';
 $max_calls = (int)($_POST['max_calls'] ?? 30);
-$delay = (float)($_POST['delay_time'] ?? 5.0);
+$delay = (float)($_POST['delay_time'] ?? 30.0);
 
 // Process numbers: Split, clean, and standardize each one
 $raw_inputs = array_map('trim', explode(',', $raw_numbers));
@@ -48,7 +48,7 @@ foreach ($raw_inputs as $input) {
     if (!empty($input)) {
         $standardized = standardize_number(trim($input));
         if ($standardized) {
-            $processed_numbers[] = $standardized;
+            $processed_numbers[$input] = $standardized;
         } else {
             // Handle cases where the input was garbage data
              echo "<p style='color:orange;'>[WARNING] Skipped invalid input: " . htmlspecialchars(trim($input)) . "</p>";
