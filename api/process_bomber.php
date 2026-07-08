@@ -30,7 +30,7 @@ function standardize_number($input) {
 // PHP CORE LOGIC START
 // ==============================================================
 
-if (!isset($_SERVER["REQUEST_METHOD"]) !== "POST") {
+if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     header("Location: index.html"); // Redirect user back to the form if accessed directly
     exit();
 }
@@ -147,7 +147,7 @@ function call_via_twilio_php($number, $sid, $token) {
         return false; 
     }
 
-    /* 
+    
     // REAL API LOGIC (Conceptual - Requires specific PHP Library installation):
     try {
         // Assuming you installed a gem/library that gives you this client object:
@@ -164,7 +164,7 @@ function call_via_twilio_php($number, $sid, $token) {
         error_log("API Call Failed: " . $e->getMessage());
         return false;
     }
-    */
+    
 }
 
 ?>
