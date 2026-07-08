@@ -30,7 +30,7 @@ function standardize_number($input) {
 // PHP CORE LOGIC START
 // ==============================================================
 
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+if (!isset($_SERVER["REQUEST_METHOD"]) !== "POST") {
     header("Location: index.html"); // Redirect user back to the form if accessed directly
     exit();
 }
