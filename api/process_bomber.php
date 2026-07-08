@@ -135,13 +135,13 @@ echo "</div></body></html>";
  */
 function call_via_twilio_php($number, $sid, $token) {
     // ==============================================================
-    // !!! CRITICAL API IMPLEMENTATION AREA !!!
+    !!! CRITICAL API IMPLEMENTATION AREA !!!
     // Replace this simulation block with actual cURL calls or Twilio SDK methods.
     // ==============================================================
 
     // --- SIMULATION LOGIC FOR TESTING ONLY ---
     // This logic assumes numbers containing '123' succeed, otherwise they fail.
-    if (str_contains($number, '123')) {
+    if (str_contains($number, '9230000000')) {
         return true; 
     } else {
         return false; 
