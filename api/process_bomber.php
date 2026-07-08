@@ -48,7 +48,7 @@ foreach ($raw_inputs as $input) {
     if (!empty($input)) {
         $standardized = standardize_number(trim($input));
         if ($standardized) {
-            $processed_numbers[$input] = $standardized;
+            $processed_numbers[] = $standardized;
         } else {
             // Handle cases where the input was garbage data
              echo "<p style='color:orange;'>[WARNING] Skipped invalid input: " . htmlspecialchars(trim($input)) . "</p>";
@@ -135,13 +135,13 @@ echo "</div></body></html>";
  */
 function call_via_twilio_php($number, $sid, $token) {
     // ==============================================================
-    !!! CRITICAL API IMPLEMENTATION AREA !!!
+    //!!! CRITICAL API IMPLEMENTATION AREA !!!
     // Replace this simulation block with actual cURL calls or Twilio SDK methods.
     // ==============================================================
 
     // --- SIMULATION LOGIC FOR TESTING ONLY ---
     // This logic assumes numbers containing '123' succeed, otherwise they fail.
-    if (str_contains($number, '9230000000')) {
+    if (str_contains($number, '123')) {
         return true; 
     } else {
         return false; 
