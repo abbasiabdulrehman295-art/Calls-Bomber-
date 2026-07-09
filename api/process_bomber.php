@@ -7,40 +7,83 @@ $AUTH_TOKEN  = "ea92ef9dcfab8a8d17ac79ccc8a31f42";   // <-- PASTE YOUR ACTUAL TW
 
 // --- Helper function for standardizing numbers (Local to International) ---
 function standardize_number($input) {
-    // 1. Strip all non-digit characters
     $digits = preg_replace('/[^\d]/', '', $input);
     if (!$digits) return null;
-
-    // 2. Logic assumption: If it's short (e.g., 10 digits), assume local dialing context.
-    // If the user enters a number that starts with '92' or is very long, keep it as is.
     $standardized = $digits;
 
-    // Example enforcement for Pakistan: If it's just 10 digits, prepend the country code assumption.
-    // This logic needs tuning based on your *actual* number base.
     if (strlen($digits) >= 9 && !str_starts_with($digits, '92')) {
-        return "92" . $digits; // Simple heuristic: Prepend 92 if it's not already present and is long enough
+        return "92" . $digits;
     }
-
-    // If it already starts with a code (like +92 or 03...), return standardized.
     return $standardized; 
 }
 
+// --- Twilio Connection Class (Highly Recommended for organization) ---
+class TwilioCaller {
+    private $sid;
+    private $token;
+    public function __construct($sid, $token) {
+        $this->sid = $sid;
+        $this->token = $token;
+    }
+
+    /**
+     * Sends the call via API. Returns true/false based on success or throws exception.
+     */
+    public function makeCall($number, $fromNumber, $twimlUrl) {
+        // *** BEST PRACTICE: Use official PHP SDK if possible ***
+        // For this example, we stick to cURL as you had before.
+
+        $ch = curl_init();
+        $url = "https://api.twilio.com/2010-04-01/Accounts/" . $this->sid . "/Calls.json";
+
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+
+        $auth = $this->sid . ":" . $this->token;
+        curl_setopt($ch, CURLOPT_USERPWD, $auth);
+
+        // Data payload for the API call
+        $data = http_build_query([
+            'To' => $number,
+            'From' => $fromNumber, 
+            'Url' => $twimlUrl
+        ]);
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($response === false) {
+            error_log("cURL Error: " . curl_error($ch));
+            curl_close($ch);
+            return false; // Connection error
+        }
+
+        // Basic check on API response success code (201 Created is usually successful)
+        $is_successful = ($http_code >= 200 && $http_code < 300);
+        curl_close($ch);
+        return $is_successful;
+    }
+}
+
 
 // ==============================================================
-// PHP CORE LOGIC START
+// PHP CORE LOGIC START (Execution Trigger)
 // ==============================================================
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    header("Location: index.html"); // Redirect user back to the form if accessed directly
+    // If accessing the page directly without POST data, redirect to index.html
+    header("Location: index.html"); 
     exit();
 }
 
-// 1. DATA RETRIEVAL & PARSING
+// --- Input Processing ---
 $raw_numbers = $_POST['numbers'] ?? '';
 $max_calls = (int)($_POST['max_calls'] ?? 30);
 $delay = (float)($_POST['delay_time'] ?? 30.0);
 
-// Process numbers: Split, clean, and standardize each one
 $raw_inputs = array_map('trim', explode(',', $raw_numbers));
 $processed_numbers = [];
 
@@ -50,26 +93,31 @@ foreach ($raw_inputs as $input) {
         if ($standardized) {
             $processed_numbers[] = $standardized;
         } else {
-            // Handle cases where the input was garbage data
              echo "<p style='color:orange;'>[WARNING] Skipped invalid input: " . htmlspecialchars(trim($input)) . "</p>";
         }
     }
 }
 
-$numbers_list = array_unique($processed_numbers); // Remove duplicates for cleaner logs
+$numbers_list = array_unique($processed_numbers); 
 
 
-// 2. INITIALIZATION & OUTPUT STRUCTURE
+// --- Setup Call Handler ---
+$twilioClient = new TwilioCaller($ACCOUNT_SID, $AUTH_TOKEN); 
+$FROM_NUMBER = '+19898124894'; // <--- !!! MUST BE SET !!!
+$TWIML_URL = 'https://yourdomain.com/twiml.xml'; // <--- !!! MUST BE SET !!!
+
+
+// --- Output Wrapper (HTML & Logic Combined) ---
 echo "<!DOCTYPE html>
 <html lang='en'>
 <head><meta charset='UTF-8'><title>Results</title>";
-// Include the same minimal styles from index.html here to keep it contained
 $styles = 'body{font-family: "Courier New", Courier, monospace; background-color: #0a0a0a; color: #39ff14; padding: 20px;}';
 echo "<style>" . $styles . "</style>";
-echo "</head><body>";
+echo "</head><body onload='window.scrollTo(0, document.body.scrollHeight);'>"; // Smooth scroll to bottom
+echo "<div class='container' style='background-color: #1a1a1a; padding: 30px;'>";
 
 // Display summary status before the detailed log
-echo "<h1 style='color: #ff6b6b;'>😈 RAJPUT Bomber Terminal - REPORT</h1>";
+echo "<h1>😈 RAJPUT Bomber Terminal - REPORT</h1>";
 echo "<p><strong>TARGETS VALIDATED:</strong> " . count($numbers_list) . " unique numbers ready for attack.</p>";
 echo "<p><strong>RATE LIMIT:</strong> {$max_calls} calls | <strong>DELAY:</strong> {$delay} seconds.</p>";
 
@@ -91,11 +139,11 @@ foreach ($numbers_list as $number) {
         break;
     }
 
-    // Display current status
+    // Display current status (HTML output appended to the log)
     echo "<hr style='border-color:#39ff14;'><h3 style='color: #fff354;'>[TRY " . ($call_count + 1) . "] -> Calling: {$number}</h3>";
 
-    // --- CORE CALL FUNCTIONALITY (MUST BE REPLACED) ---
-    $call_success = call_via_twilio_php($number, $ACCOUNT_SID, $AUTH_TOKEN); 
+    // --- CORE CALL FUNCTIONALITY (Using the dedicated class method) ---
+    $call_success = $twilioClient->makeCall($number, $FROM_NUMBER, $TWIML_URL); 
     // --------------------------------------------------
 
     if ($call_success) {
@@ -106,13 +154,15 @@ foreach ($numbers_list as $number) {
         $results['fail']++;
     }
 
-    // Wait mechanism (Sleep)
-    sleep($delay);
+    // Wait mechanism (Sleep) - This command only works in CLI environments, 
+    // if running via web browser, this sleep is effectively bypassed by the HTTP request time.
+    echo "<script>setTimeout(function(){}, " . ($delay * 1000) . ");</script>";
 
     $call_count++;
 }
 
-// 4. FINAL SUMMARY REPORT
+
+// 4. FINAL SUMMARY REPORT (Appended at the end of the output)
 echo "<hr style='border-color:#39ff14;'><h2 style='color: #fff354;'>🎉 BOMBARDMENT CYCLE COMPLETE! 🎉</h2>";
 echo "<p><strong>FINAL STATUS REPORT:</strong></p>";
 echo "<ul style='list-style-type: none; padding-left: 0;'>";
@@ -122,49 +172,6 @@ echo "<li style='color:blue;'>🌐 Total Attempts Processed: {$results['total']}
 echo "</ul>";
 
 // 5. Closing tags
-echo "</div></body></html>";
-?>
-
-<?php
-/**
- * @brief Placeholder function to handle the actual call attempt via API.
- * @param string $number The number to call.
- * @param string $sid Your Account SID.
- * @param string $token Your Auth Token.
- * @return bool True if successful, false otherwise.
- */
-function call_via_twilio_php($number, $sid, $token) {
-    // ==============================================================
-    //!!! CRITICAL API IMPLEMENTATION AREA !!!
-    // Replace this simulation block with actual cURL calls or Twilio SDK methods.
-    // ==============================================================
-
-    // --- SIMULATION LOGIC FOR TESTING ONLY ---
-    // This logic assumes numbers containing '123' succeed, otherwise they fail.
-    if (str_contains($number, '123')) {
-        return true; 
-    } else {
-        return false; 
-    }
-
-    
-    // REAL API LOGIC (Conceptual - Requires specific PHP Library installation):
-    try {
-        // Assuming you installed a gem/library that gives you this client object:
-        $client = new TwilioClient($sid, $token); 
-        $call = $client->calls()->create([
-            'To' => $number,
-            'From' => '+19898124894', // MUST be a number bought in Pakistan or globally recognized by your service
-            // twiML must be set up to keep the line open if necessary:
-            'TwiML' => '<Dial><Number>' . htmlspecialchars($number) . '</Number></Dial>', 
-        ]);
-        return true; // Successfully initiated call record in API
-    } catch (Exception $e) {
-        // Handle connection errors, invalid credentials, etc.
-        error_log("API Call Failed: " . $e->getMessage());
-        return false;
-    }
-    
-}
-
+echo "</div class='container'>";
+echo "</body></html>";
 ?>
