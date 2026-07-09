@@ -1,15 +1,9 @@
 {
   "version": 2,
-  "functions": {
-    "api/**/*.php": {
-      "runtime": "vercel-php@0.7.3"
-    }
-  },
+  "builds": [
+    { "src": "process_bomber.php", "use": "@vercel/php" }
+  ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    }
+    { "src": "/", "dest": "process_bomber.php" }
   ]
 }
-
